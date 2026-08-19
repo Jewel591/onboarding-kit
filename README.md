@@ -3,8 +3,19 @@
 An opinionated Foundation + Observation Swift package for first-run onboarding across
 Ivens' Apple app portfolio. Apps provide an ordered collection of typed steps
 and render each screen themselves; the package supplies one definition of
-navigation, persisted progress, completion, replay, reset, migration, and
-permission-prompt interaction state.
+navigation, persisted progress, completion, replay, reset, and migration.
+
+> **Important UI boundary:** OnboardingKit does not contain or provide any
+> onboarding `View`. Every app designs and implements its own screens so the
+> experience matches that product's visual language. When designing or
+> revising those screens, prefer relevant studies from the private
+> [ScreenStudies](https://github.com/Jewel591/screenstudies/) repository as the
+> visual source of truth. Its page implementation may be copied into the host
+> app and adapted there, but ScreenStudies itself must never be added as a
+> package, source-tree, or runtime dependency. Apart from product-specific copy,
+> branding, data, and surrounding app shell, preserve the selected study's
+> layout, spacing, shape language, color roles, type hierarchy, interactions,
+> and documented details as faithfully as possible.
 
 ## Fixed portfolio policy
 
@@ -17,8 +28,6 @@ permission-prompt interaction state.
   second skip state.
 - Replay is transient and never clears the completion waterline.
 - Debug overrides are transient and never write persistent state.
-- Permission education is always optional: a failed or denied request never
-  disables forward navigation.
 
 ## Usage
 
@@ -53,17 +62,46 @@ The app switches over typed `currentStep` and owns every screen. Use
 transitions and progress UI. Call `beginReplay()` from a user-initiated
 "View onboarding again" entry without resetting completion.
 
-## Permission education
+## Permission boundary
 
-`OnboardingPermissionPromptState` standardizes the part that belongs to the
-onboarding experience: requests start only after an explicit user action,
-duplicate taps are ignored while a request is in flight, attempted state is
-observable, and `canAdvance` is always true.
+OnboardingKit contains no permission functionality. It does not import a
+permission framework, query or request authorization, model authorization
+status, manage request-in-flight state, provide Settings recovery, declare
+usage descriptions, or decide which capability an app needs. Notification,
+location, photos, camera, microphone, speech, tracking, and similar access are
+app-wide capabilities that must remain owned by the host app's permission
+service.
 
-The package deliberately does not query or request notifications, location,
-photos, camera, microphone, or any other system capability. Those services
-are app-wide infrastructure also used outside onboarding and remain the
-host's single source of truth.
+This boundary prevents onboarding from becoming a second authorization source
+of truth and keeps permission behavior correct when the same capability is used
+elsewhere in the app. It also prevents a generic package from hiding
+platform-specific purpose strings, entitlements, status changes, and recovery
+behavior that App Review evaluates in the context of the actual product.
+
+Host apps must follow these defaults:
+
+- Prefer education in onboarding and defer the system request until the person
+  actually uses the feature that needs it.
+- If a request genuinely belongs in onboarding, trigger it only from an
+  explicit user action that clearly explains the immediate benefit. Never
+  request from app launch, object initialization, `onAppear`, or an automatic
+  `.task`.
+- Request only the minimum access level needed and keep authorization status in
+  one app-wide service. Treat denial and restriction as normal states.
+- Never require notification, location, tracking, or unrelated protected data
+  merely to finish onboarding or use unrelated/core functionality. Provide an
+  alternative when practical and keep forward navigation available.
+- Use complete, specific purpose strings. After denial, explain the unavailable
+  feature and offer Settings recovery when useful; don't repeatedly call an API
+  that can no longer display the system prompt.
+- Don't imitate the system alert, tell people which system choice to tap, offer
+  incentives, or use misleading custom “Allow” controls.
+
+Apple explicitly warns against launch-time requests without a functional need
+and against manipulating or forcing consent. See Apple's
+[Privacy HIG](https://developer.apple.com/design/human-interface-guidelines/privacy),
+[App Review Guidelines 5.1.1](https://developer.apple.com/app-store/review/guidelines/#privacy),
+and [protected-resource guidance](https://developer.apple.com/documentation/uikit/requesting-access-to-protected-resources).
 
 ## Migration contract
 
@@ -87,8 +125,12 @@ leave completion and saved progress untouched. Release builds ignore them.
 
 ## Deliberately out of scope
 
-- Screen UI, strings, illustrations, animations, and page transitions
-- System permission implementations, purpose strings, and entitlements
+- All screen UI, including SwiftUI/UIKit views, strings, illustrations,
+  animations, and page transitions. Each host app owns these and should prefer
+  relevant private [ScreenStudies](https://github.com/Jewel591/screenstudies/)
+  research when choosing an onboarding design.
+- All permission functionality: APIs, authorization truth, prompt interaction
+  state, purpose strings, entitlements, Settings recovery, and permission policy
 - Authentication, subscription, paywalls, and business-data initialization
 - What's New content and feature-level education
 - Cross-surface arbitration and sheet serialization
