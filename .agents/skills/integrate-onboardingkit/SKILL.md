@@ -122,12 +122,21 @@ state. Keep `UNUserNotificationCenter`, Core Location, camera, microphone,
 photos, speech, tracking, authorization truth, request de-duplication, Settings
 recovery, purpose strings, and entitlements in the host app.
 
-Prefer an education-only onboarding page and request authorization later, when
-the person first uses the protected feature. If the product genuinely needs to
-request during onboarding, require an explicit user action, request minimum
-scope, and let denial or restriction continue through onboarding. Never request
-from launch, initialization, `onAppear`, or an automatic task, and never gate
-unrelated/core functionality on consent.
+Inventory every protected capability the app actually uses. The host onboarding
+plan must include a dedicated permission acquisition step for each capability;
+an education-only page that merely advances without calling the host permission
+service is incomplete. Notification acquisition is the portfolio default and
+must be present for most apps. Omit it only when the app has an explicit product
+decision that it has no notification use case.
+
+On each permission page, one explicit neutral action calls the app-wide host
+permission service and then allows onboarding to continue regardless of grant,
+denial, restriction, or request failure. Never request from launch,
+initialization, `onAppear`, or an automatic task, never burst several system
+prompts from one action, and never gate unrelated/core functionality on
+consent. If authorization was already decided, the system may show no alert;
+read the host service's current status and provide Settings recovery where
+useful instead of treating the missing alert as a failed request.
 
 Read [references/permission-design.md](references/permission-design.md) for the
 required host pattern, App Review rationale, and anti-pattern checklist.
@@ -150,12 +159,18 @@ required host pattern, App Review rationale, and anti-pattern checklist.
 - Keep page views and their content in the app.
 - Keep all permission APIs, authorization truth, prompt state, recovery, and
   policy in the app; remove any attempted permission abstraction from the Kit.
+- Inventory all host capabilities that require protected access and add one
+  explicit onboarding acquisition step per capability. Include notifications
+  by default; document the rare product exception that has no notification use
+  case.
 - Preserve one common host completion helper for first-run final Continue and Skip; keep replay-only closure from repeating first-run effects.
 - Verify a completed legacy install stays completed.
 - Verify an interrupted flow resumes by stable step ID.
 - Verify a removed saved ID falls back to the first current step.
 - If the host requests protected access, verify denial, restriction, request
-  failure, and repeated taps never trap onboarding or unrelated functionality.
+  failure, already-determined status, and repeated taps never trap onboarding
+  or unrelated functionality. Verify each permission page actually calls its
+  host service rather than only advancing.
 - Run the package's `swift test` plus the target app's smallest relevant tests.
 - Run the product-playbook `onboarding-kit-lint` required by the app's lifecycle stage.
 

@@ -50,13 +50,22 @@ all product-specific side effects.
 
 ## Host permission guidance
 
-- Prefer onboarding education without requesting access; request in the real
-  feature context when the person first uses the protected capability.
-- If an onboarding request is justified, require an explicit user action and
-  never trigger it during app/view/model initialization, `onAppear`, or an
-  automatic task.
+- Inventory every protected capability the app actually uses. Each one must
+  have a host-owned permission acquisition step in onboarding; a purely
+  educational page that never calls the host permission service is incomplete.
+- Notifications are the portfolio default because most apps need reminders,
+  result delivery, or other user-chosen updates. Omit notification acquisition
+  only for the rare app with an explicit product decision that it has no
+  notification use case.
+- Each permission request requires its own contextual page and explicit,
+  neutral user action. Never trigger a request during app/view/model
+  initialization, `onAppear`, or an automatic task, and never burst several
+  system prompts from one action.
 - Never make consent to notifications, location, tracking, or unrelated data a
   condition for completing onboarding or using unrelated/core functionality.
+- If the system status is already determined, the step must not expect a new
+  alert; read the host service's current truth, continue, and offer Settings
+  recovery where useful.
 - Request minimum scope, keep one host-owned authorization truth, handle denial
   as expected, provide alternatives and Settings recovery where useful, and use
   accurate purpose strings.

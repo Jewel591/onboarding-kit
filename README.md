@@ -80,12 +80,17 @@ behavior that App Review evaluates in the context of the actual product.
 
 Host apps must follow these defaults:
 
-- Prefer education in onboarding and defer the system request until the person
-  actually uses the feature that needs it.
-- If a request genuinely belongs in onboarding, trigger it only from an
-  explicit user action that clearly explains the immediate benefit. Never
-  request from app launch, object initialization, `onAppear`, or an automatic
-  `.task`.
+- Inventory every protected capability the app actually uses. Add a dedicated
+  host-owned acquisition step for each one to the onboarding plan; an
+  education-only page that never calls the host permission service does not
+  satisfy this integration contract.
+- Notification acquisition is included by default across the app portfolio,
+  because most apps need reminders, result delivery, or other user-chosen
+  updates. Omit it only when the app has an explicit product decision that it
+  has no notification use case.
+- Trigger each request only from that permission page's explicit, neutral user
+  action. Never request from app launch, object initialization, `onAppear`, or
+  an automatic `.task`, and never chain several system prompts from one tap.
 - Request only the minimum access level needed and keep authorization status in
   one app-wide service. Treat denial and restriction as normal states.
 - Never require notification, location, tracking, or unrelated protected data
@@ -94,6 +99,9 @@ Host apps must follow these defaults:
 - Use complete, specific purpose strings. After denial, explain the unavailable
   feature and offer Settings recovery when useful; don't repeatedly call an API
   that can no longer display the system prompt.
+- When authorization was decided on an earlier install or feature use, do not
+  expect iOS to show the alert again. Read the app-wide service's current
+  status, keep onboarding moving, and expose Settings recovery where useful.
 - Don't imitate the system alert, tell people which system choice to tap, offer
   incentives, or use misleading custom “Allow” controls.
 

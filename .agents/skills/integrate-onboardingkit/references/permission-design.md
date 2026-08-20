@@ -26,36 +26,44 @@ needed to justify the request to the person and App Review.
 
 1. Decide whether access is needed at all. Prefer pickers, share sheets, manual
    entry, or narrower APIs when they avoid broad protected-resource access.
-2. Explain the concrete user benefit in the feature context. Prefer an
-   education-only onboarding page, then request when the person first performs
-   the action that needs access.
-3. Trigger the system request only from a deliberate user action. Never request
+2. Inventory every protected capability the app actually uses and add one
+   dedicated acquisition step per capability to the host onboarding plan. The
+   step is incomplete if its action only advances without calling the host
+   permission service.
+3. Include notification acquisition by default. Most portfolio apps need
+   reminders, result delivery, or other user-chosen updates; omission requires
+   an explicit product decision that the app has no notification use case.
+4. Explain the concrete benefit on that permission's onboarding page, then
+   trigger the system request only from a deliberate, neutral user action.
+   Never request
    from app startup, dependency/view/view-model initialization, `onAppear`, or
    an automatic `.task`.
-4. Request the minimum scope. Prefer When In Use location over Always unless
+5. Request the minimum scope. Prefer When In Use location over Always unless
    continuous background access is essential; request only notification
    interaction types the app actually uses.
-5. Read status from the host service before using the capability. People can
+6. Read status from the host service before using the capability. People can
    change authorization in Settings at any time; never treat an onboarding Bool
    as durable authorization truth.
-6. Treat denied, restricted, and request failure as ordinary states. Keep
+7. Treat granted, denied, restricted, already-determined status, and request
+   failure as ordinary outcomes. Keep
    onboarding and unrelated/core functionality available, provide a manual or
    reduced-capability path where practical, and explain Settings recovery when
    it can help.
-7. Use specific purpose strings that say what data is used for and the direct
+8. Use specific purpose strings that say what data is used for and the direct
    user benefit. Ensure every required usage-description key and entitlement is
    present before the request path ships.
 
-For notifications, Apple recommends asking in context, such as after a person
-creates something that can produce a reminder. Consider provisional
-authorization only when quiet trial delivery fits the product; it is not a
-generic substitute for an explicit request.
+For notifications, the onboarding page must name the app's concrete reminder,
+result, or update benefit. Consider provisional authorization only when quiet
+trial delivery fits the product; it is not a generic substitute for an explicit
+request.
 
 ## If requesting during onboarding
 
-Request during onboarding only when the page gives clear, immediate product
-context. The button tap must directly lead to the system request; do not make
-the request an incidental side effect of navigation.
+Each capability the app actually uses has a dedicated onboarding page with
+clear, immediate product context. The button tap must directly call the
+host-owned permission service; do not make the request an incidental side
+effect of navigation and do not trigger multiple system requests from one tap.
 
 If a dedicated custom screen immediately precedes the system alert, follow
 Apple's pre-alert rules: use one neutral action such as Continue or Next that
@@ -65,13 +73,20 @@ alert, incentives, arrows, or instructions telling people which system choice
 to select. The system alert owns the consent decision. After the system choice,
 denial must not trap onboarding.
 
-If permission is optional and doesn't justify a dedicated pre-alert, keep the
-onboarding page educational and defer the request to the actual feature rather
-than placing a second permission CTA beside onboarding navigation.
+Authorization itself remains optional: denial, restriction, or request failure
+must continue onboarding. The acquisition step is mandatory for a capability
+the app uses, but granting access is never mandatory. If the status was decided
+before this onboarding run, iOS may not show another alert; the page should read
+the host service's current truth and offer Settings recovery where useful.
 
 ## Common mistakes to reject in review
 
-- Requesting several permissions in sequence on first launch
+- Burst-requesting several permissions from one action or without a dedicated
+  contextual page for each request
+- Showing an education-only permission page whose Continue action never calls
+  the host permission service
+- Omitting notification acquisition without an explicit product decision that
+  the app has no notification use case
 - Triggering a request from initialization, `onAppear`, or automatic `.task`
 - Requiring authorization to finish onboarding, dismiss a paywall, receive a
   reward, or use unrelated/core functionality
