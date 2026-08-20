@@ -62,8 +62,8 @@ func makeOnboarding() throws -> OnboardingController<AppOnboardingStep> {
 Render the app-owned screens inside the Kit's fixed navigation container, and
 present that container with `OnboardingCover` so the app root stays mounted
 underneath. Completing onboarding slides the overlay down; `complete()` also
-freezes the visible navigation path so the internal stack does not pop to the
-first page during that dismiss.
+freezes the visible step and navigation path so the internal stack does not
+pop to the first page during that dismiss.
 
 ```swift
 OnboardingCover(controller: controller) {

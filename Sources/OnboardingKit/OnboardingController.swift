@@ -145,8 +145,9 @@ public final class OnboardingController<Step: OnboardingStep> {
     /// Completes either a first-run presentation or a transient replay.
     /// User-facing Skip actions call this same method.
     ///
-    /// The visible navigation path is frozen so the host can dismiss the
-    /// flow like a cover. Resetting `currentStep` does not pop to root.
+    /// The visible step and navigation path stay on the last page so the host
+    /// can dismiss the flow like a cover. `beginReplay()` and `reset()` return
+    /// to the first step; the next launch also starts at the first step.
     public func complete() {
         navigationDirection = .none
         if dismissedNavigationPath == nil {
@@ -157,12 +158,10 @@ public final class OnboardingController<Step: OnboardingStep> {
 
         if isReplaying {
             isReplaying = false
-            currentStep = plan.firstStep
             return
         }
 
         isCompleted = true
-        currentStep = plan.firstStep
         guard debugOverride == nil else {
             return
         }

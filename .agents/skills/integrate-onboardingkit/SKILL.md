@@ -131,8 +131,9 @@ replace the system navigation bar, or add per-screen back controls.
 Do not write `if controller.shouldPresent { OnboardingFlow } else { appRoot }`.
 That root swap animates `complete()` as a navigation pop to the first page.
 `OnboardingCover` dismisses downward like a system cover; `complete()` freezes
-the visible path so the overlay does not pop while it slides away. Call
-`complete()` immediately from the host helper—do not delay it for animation.
+the visible step and path so the overlay does not pop or jump back to page 1
+while it slides away. Call `complete()` immediately from the host helper—do
+not delay it for animation.
 Gate any first-run-only root `.task` work with `!controller.shouldPresent` so
 mounting the app underneath the cover does not start that work early.
 
