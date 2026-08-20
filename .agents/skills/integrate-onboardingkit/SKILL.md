@@ -190,14 +190,20 @@ required host pattern, App Review rationale, and anti-pattern checklist.
   case.
 - Preserve one common host completion helper for first-run final Continue and Skip; keep replay-only closure from repeating first-run effects.
 - Verify a completed legacy install stays completed.
-- Verify an interrupted flow resumes by stable step ID.
-- Verify a removed saved ID falls back to the first current step.
+- Test the app's real step plan and stable IDs; resume and removed-ID fallback algorithms themselves belong to OnboardingKit package tests.
 - If the host requests protected access, verify denial, restriction, request
   failure, already-determined status, and repeated taps never trap onboarding
   or unrelated functionality. Verify each permission page actually calls its
   host service rather than only advancing.
 - Run the package's `swift test` plus the target app's smallest relevant tests.
 - Run the product-playbook `onboarding-kit-lint` required by the app's lifecycle stage.
+
+## Host test boundary
+
+- Test only app-owned screens/step IDs, first-run completion effects versus replay, real shipped completion-key migration, permission-service mapping, and the host's surface routing.
+- Navigation, stable-ID persistence, resume/fallback, skip/completion state, debug overrides, and replay mechanics are fixed OnboardingKit contracts and are tested in the package once.
+- Do not inspect `project.pbxproj`, imports, source strings, or deleted host flow types from XCTest; assembly and residual implementation checks belong to `onboarding-kit-lint`.
+- Use isolated `UserDefaults`, fake permission services, and public APIs. Do not request real system permission in unit tests. Identical helpers in two apps are a signal to move the missing seam and tests into OnboardingKit.
 
 ## Red lines
 
