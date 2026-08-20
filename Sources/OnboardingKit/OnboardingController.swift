@@ -74,6 +74,33 @@ public final class OnboardingController<Step: OnboardingStep> {
         currentPosition == stepCount
     }
 
+    /// The fixed value-based path used by ``OnboardingFlow``.
+    ///
+    /// The first plan step is the stack root, so only subsequent steps appear
+    /// in the path. The setter accepts only a shorter valid prefix, which is
+    /// how the system back button and interactive pop gesture report a pop.
+    var navigationPath: [Step] {
+        get {
+            Array(plan.steps.dropFirst().prefix(currentPosition - 1))
+        }
+        set {
+            let availableSteps = plan.steps.dropFirst()
+            guard newValue.count <= availableSteps.count,
+                  Array(availableSteps.prefix(newValue.count)) == newValue,
+                  newValue.count < navigationPath.count else {
+                return
+            }
+
+            while navigationPath.count > newValue.count {
+                retreat()
+            }
+        }
+    }
+
+    var firstStep: Step {
+        plan.firstStep
+    }
+
     /// Advances one step. Advancing from the last step completes onboarding.
     public func advance() {
         guard shouldPresent, let currentIndex = plan.index(of: currentStep) else {

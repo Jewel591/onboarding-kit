@@ -6,8 +6,11 @@ all product-specific side effects.
 
 ## Product boundary
 
-- The package never contains, exports, or prescribes an onboarding SwiftUI/UIKit
-  `View`. Every host app implements screens that match its own product style.
+- The package exports exactly one infrastructure-level SwiftUI container,
+  `OnboardingFlow`, which owns the system `NavigationStack` and value path. It
+  never contains, exports, or prescribes a concrete onboarding screen, custom
+  navigation chrome, or screen styling. Every host app implements screens that
+  match its own product style.
   For onboarding UI design, prefer relevant research in the private
   [ScreenStudies](https://github.com/Jewel591/screenstudies/) repository before
   inventing a design from scratch. The selected page is the visual source of
@@ -20,9 +23,9 @@ all product-specific side effects.
   ScreenStudies root README migration contract and product-playbook `SS-*`
   rules when implementing or reviewing the UI.
 - The package owns an ordered plan with any nonzero number of stable step IDs,
-  forward/back navigation, navigation direction, current-step restoration,
-  completion state, replay, reset, debug overrides, and legacy completion
-  seeding.
+  the onboarding-internal system navigation container, forward/back navigation,
+  navigation direction, current-step restoration, completion state, replay,
+  reset, debug overrides, and legacy completion seeding.
 - Host apps own all SwiftUI/UIKit rendering, copy, assets, animations, system
   permission APIs, Info.plist purpose strings, entitlements, authentication,
   paywalls, business-data setup, and completion side effects.
@@ -33,7 +36,11 @@ all product-specific side effects.
   the host app, not an onboarding subsystem.
 - Onboarding is a root gate before normal app content. It is not a
   SurfaceCoordinatorKit candidate. The host may publish an `onboardingActive`
-  signal while the root gate is present.
+  signal while the root gate is present. An outer app `NavigationStack` and the
+  Kit's internal stack may coexist only as independent navigation scopes: do
+  not push internal onboarding steps from the app stack, add another stack to
+  an onboarding screen, or present onboarding as an ordinary app destination
+  with a competing exit-back meaning.
 - A version update or a changed step list never invalidates completion. New
   feature education belongs to WhatsNewKit or the feature itself.
 
@@ -79,8 +86,9 @@ all product-specific side effects.
 
 - Swift 6 strict concurrency. Public API supports iOS 17, macOS 14, and
   visionOS 1.
-- Zero dependencies and no UI frameworks. Keep all mutable public state on
-  `MainActor`.
+- Zero third-party dependencies. SwiftUI is used only by the unstyled
+  `OnboardingFlow` infrastructure container; the controller remains independent
+  of screen UI. Keep all mutable public state on `MainActor`.
 - Persist only under the `OnboardingKit.` prefix. Host code may read legacy
   keys during one-time seeding but must not write package-owned keys.
 - Every state or storage change requires focused Swift Testing coverage with

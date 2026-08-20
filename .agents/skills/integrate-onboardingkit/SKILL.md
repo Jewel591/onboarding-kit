@@ -5,13 +5,13 @@ description: Integrate, migrate, review, or troubleshoot an Apple app that uses 
 
 # Integrate OnboardingKit
 
-Use OnboardingKit as the single owner of onboarding navigation, completion, resumable progress, replay, debug overrides, and legacy completion migration. The host app owns every screen, every system permission API, and all app-specific completion side effects.
+Use OnboardingKit as the single owner of the onboarding-internal system navigation container, completion, resumable progress, replay, debug overrides, and legacy completion migration. The host app owns every concrete screen, every system permission API, and all app-specific completion side effects.
 
 ## Build host-owned screens
 
-OnboardingKit contains no SwiftUI/UIKit onboarding `View`. Implement every
-screen in the host app so it matches that app's visual language and project UI
-rules.
+OnboardingKit contains one unstyled SwiftUI infrastructure view,
+`OnboardingFlow`, but no concrete onboarding screen. Implement every screen in
+the host app so it matches that app's visual language and project UI rules.
 
 When creating or redesigning onboarding screens, first look for a relevant
 study in Ivens' private
@@ -103,7 +103,30 @@ let controller = OnboardingKit.OnboardingController(
 
 For a new app with no legacy key, omit `seedCompletion`. For a migration, include every historical completion key still present in shipped builds. The migration is intentionally one-way: once `OnboardingKit.completed` exists, even as explicit `false`, legacy values cannot overwrite it.
 
-Render the host-owned page by switching on `controller.currentStep`. Read `currentPosition`, `stepCount`, `canGoBack`, and `navigationDirection` for app-owned controls and animation. Use `advance()` and `retreat()` for navigation.
+Render host-owned pages inside the Kit container:
+
+```swift
+OnboardingFlow(controller: controller) { step in
+    switch step {
+    case .welcome: WelcomeView(onContinue: controller.advance)
+    case .capture: CaptureView(onContinue: controller.advance)
+    case .notifications: NotificationsView(onContinue: requestNotifications)
+    }
+}
+```
+
+The first configured step is the stack root. Every later step receives the
+system back button and interactive-pop behavior automatically. Read
+`currentPosition`, `stepCount`, and `navigationDirection` for app-owned progress
+UI and animations. Use `advance()` for forward navigation; system back behavior
+is fixed by `OnboardingFlow`, so do not recreate a host path adapter, hide or
+replace the system navigation bar, or add per-screen back controls.
+
+The app may have its own outer `NavigationStack` as an independent scope.
+Present onboarding as the root launch gate or an isolated full-screen flow; do
+not push its internal steps from the app stack, make onboarding a normal app
+destination with a competing exit-back meaning, or nest another
+`NavigationStack` inside an onboarding screen.
 
 User-facing Skip and final Continue both call the same app helper, which runs app-specific completion effects and then calls `controller.complete()`. Do not add a second skip state or skip key.
 
@@ -154,6 +177,8 @@ required host pattern, App Review rationale, and anti-pattern checklist.
 - Inventory behavior conflicts and explicitly choose the Kit contract wherever
   it is the stronger portfolio default; delete the displaced host path.
 - Replace app-local page index and completion state with one controller.
+- Replace app-local `NavigationStack`, path binding, interactive-pop adapter,
+  and back controls with `OnboardingFlow`.
 - Seed all shipped completion keys before controller initialization.
 - Remove all remaining writers to the old keys in the same change.
 - Keep page views and their content in the app.
@@ -176,8 +201,10 @@ required host pattern, App Review rationale, and anti-pattern checklist.
 
 ## Red lines
 
-- Do not put SwiftUI/UIKit screens, copy, colors, illustrations, analytics
-  schemas, or product strategy parameters in the package. ScreenStudies source
+- Do not put concrete SwiftUI/UIKit screens, copy, colors, illustrations,
+  custom navigation chrome, analytics schemas, or product strategy parameters
+  in the package. `OnboardingFlow` is the sole infrastructure-level UI
+  exception. ScreenStudies source
   may be copied into a host app for faithful page migration, but never into
   OnboardingKit and never as an imported package/source-tree dependency.
 - Do not put any permission concern in the package, including request APIs,

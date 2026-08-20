@@ -1,12 +1,13 @@
 # OnboardingKit
 
-An opinionated Foundation + Observation Swift package for first-run onboarding across
+An opinionated SwiftUI + Observation Swift package for first-run onboarding across
 Ivens' Apple app portfolio. Apps provide an ordered collection of typed steps
 and render each screen themselves; the package supplies one definition of
 navigation, persisted progress, completion, replay, reset, and migration.
 
-> **Important UI boundary:** OnboardingKit does not contain or provide any
-> onboarding `View`. Every app designs and implements its own screens so the
+> **Important UI boundary:** OnboardingKit provides only the unstyled
+> `OnboardingFlow` infrastructure container. It does not contain any concrete
+> onboarding screen. Every app designs and implements its own screens so the
 > experience matches that product's visual language. When designing or
 > revising those screens, prefer relevant studies from the private
 > [ScreenStudies](https://github.com/Jewel591/screenstudies/) repository as the
@@ -57,10 +58,35 @@ func makeOnboarding() throws -> OnboardingController<AppOnboardingStep> {
 }
 ```
 
-The app switches over typed `currentStep` and owns every screen. Use
-`navigationDirection`, `currentPosition`, and `stepCount` for host-owned
-transitions and progress UI. Call `beginReplay()` from a user-initiated
-"View onboarding again" entry without resetting completion.
+Render the app-owned screens inside the Kit's fixed navigation container:
+
+```swift
+OnboardingFlow(controller: controller) { step in
+    switch step {
+    case .welcome: WelcomeView(onContinue: controller.advance)
+    case .notifications: NotificationsView(onContinue: requestNotifications)
+    case .location: LocationView(onContinue: requestLocation)
+    case .ready: ReadyView(onComplete: finishOnboarding)
+    }
+}
+```
+
+The first plan step is the stack root. Every later step receives the system
+back button and interactive-pop behavior automatically. The app chooses any
+positive number of steps; adding or removing a page requires no navigation
+configuration. Do not hide or replace the system navigation bar on individual
+onboarding screens.
+
+Onboarding should be a leaf root-gate flow: conditionally show it before the
+app's main navigation, or present it as an isolated full-screen flow. An app may
+have its own outer `NavigationStack`; the two stacks do not share paths. Do not
+push onboarding's internal steps from the app stack, present onboarding as a
+normal destination with a second exit-back meaning, or add another
+`NavigationStack` inside an onboarding screen.
+
+Use `navigationDirection`, `currentPosition`, and `stepCount` for host-owned
+progress UI. Call `beginReplay()` from a user-initiated "View onboarding again"
+entry without resetting completion.
 
 ## Permission boundary
 
@@ -133,8 +159,8 @@ leave completion and saved progress untouched. Release builds ignore them.
 
 ## Deliberately out of scope
 
-- All screen UI, including SwiftUI/UIKit views, strings, illustrations,
-  animations, and page transitions. Each host app owns these and should prefer
+- All concrete screen UI, including strings, illustrations, custom styling,
+  animations, and custom page transitions. Each host app owns these and should prefer
   relevant private [ScreenStudies](https://github.com/Jewel591/screenstudies/)
   research when choosing an onboarding design.
 - All permission functionality: APIs, authorization truth, prompt interaction

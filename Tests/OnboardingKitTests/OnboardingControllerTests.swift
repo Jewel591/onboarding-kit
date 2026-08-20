@@ -53,17 +53,51 @@ func navigationDerivesFromVariablePlanAndPersistsStableID() throws {
     #expect(controller.stepCount == 3)
     #expect(controller.currentPosition == 1)
     #expect(!controller.canGoBack)
+    #expect(controller.navigationPath.isEmpty)
 
     controller.advance()
     #expect(controller.currentStep == .permission)
     #expect(controller.navigationDirection == .forward)
     #expect(controller.currentPosition == 2)
+    #expect(controller.navigationPath == [.permission])
     #expect(store.state.currentStepID == "permission")
 
     controller.retreat()
     #expect(controller.currentStep == .welcome)
     #expect(controller.navigationDirection == .backward)
     #expect(store.state.currentStepID == "welcome")
+}
+
+@MainActor
+@Test
+func systemNavigationPopSynchronizesControllerAndPersistedProgress() throws {
+    let store = MemoryStore()
+    let controller = OnboardingController(plan: try makePlan(), store: store)
+    controller.advance()
+    controller.advance()
+    #expect(controller.navigationPath == [.permission, .ready])
+
+    controller.navigationPath = [.permission]
+
+    #expect(controller.currentStep == .permission)
+    #expect(controller.navigationDirection == .backward)
+    #expect(controller.navigationPath == [.permission])
+    #expect(store.state.currentStepID == "permission")
+}
+
+@MainActor
+@Test
+func navigationPathRejectsHostPushesAndInvalidPrefixes() throws {
+    let store = MemoryStore()
+    let controller = OnboardingController(plan: try makePlan(), store: store)
+    controller.advance()
+
+    controller.navigationPath = [.permission, .ready]
+    #expect(controller.currentStep == .permission)
+
+    controller.navigationPath = [.ready]
+    #expect(controller.currentStep == .permission)
+    #expect(controller.navigationPath == [.permission])
 }
 
 @MainActor
@@ -114,6 +148,7 @@ func savedStableIDRestoresAcrossControllerInstances() throws {
     )
     #expect(controller.currentStep == .permission)
     #expect(controller.currentPosition == 2)
+    #expect(controller.navigationPath == [.permission])
 }
 
 @MainActor
