@@ -9,9 +9,10 @@ Use OnboardingKit as the single owner of the onboarding-internal system navigati
 
 ## Build host-owned screens
 
-OnboardingKit contains one unstyled SwiftUI infrastructure view,
-`OnboardingFlow`, but no concrete onboarding screen. Implement every screen in
-the host app so it matches that app's visual language and project UI rules.
+OnboardingKit contains two unstyled SwiftUI infrastructure views,
+`OnboardingFlow` and `OnboardingCover`, but no concrete onboarding screen.
+Implement every screen in the host app so it matches that app's visual language
+and project UI rules.
 
 When creating or redesigning onboarding screens, first look for a relevant
 study in Ivens' private
@@ -103,14 +104,19 @@ let controller = OnboardingKit.OnboardingController(
 
 For a new app with no legacy key, omit `seedCompletion`. For a migration, include every historical completion key still present in shipped builds. The migration is intentionally one-way: once `OnboardingKit.completed` exists, even as explicit `false`, legacy values cannot overwrite it.
 
-Render host-owned pages inside the Kit container:
+Render host-owned pages inside the Kit container, and present that container
+with `OnboardingCover` so the app root stays mounted under the overlay:
 
 ```swift
-OnboardingFlow(controller: controller) { step in
-    switch step {
-    case .welcome: WelcomeView(onContinue: controller.advance)
-    case .capture: CaptureView(onContinue: controller.advance)
-    case .notifications: NotificationsView(onContinue: requestNotifications)
+OnboardingCover(controller: controller) {
+    MainTabView()
+} flow: {
+    OnboardingFlow(controller: controller) { step in
+        switch step {
+        case .welcome: WelcomeView(onContinue: controller.advance)
+        case .capture: CaptureView(onContinue: controller.advance)
+        case .notifications: NotificationsView(onContinue: requestNotifications)
+        }
     }
 }
 ```
@@ -122,11 +128,20 @@ UI and animations. Use `advance()` for forward navigation; system back behavior
 is fixed by `OnboardingFlow`, so do not recreate a host path adapter, hide or
 replace the system navigation bar, or add per-screen back controls.
 
+Do not write `if controller.shouldPresent { OnboardingFlow } else { appRoot }`.
+That root swap animates `complete()` as a navigation pop to the first page.
+`OnboardingCover` dismisses downward like a system cover; `complete()` freezes
+the visible path so the overlay does not pop while it slides away. Call
+`complete()` immediately from the host helper—do not delay it for animation.
+Gate any first-run-only root `.task` work with `!controller.shouldPresent` so
+mounting the app underneath the cover does not start that work early.
+
 The app may have its own outer `NavigationStack` as an independent scope.
-Present onboarding as the root launch gate or an isolated full-screen flow; do
-not push its internal steps from the app stack, make onboarding a normal app
-destination with a competing exit-back meaning, or nest another
-`NavigationStack` inside an onboarding screen.
+Do not push onboarding's internal steps from the app stack, make onboarding a
+normal app destination with a competing exit-back meaning, or nest another
+`NavigationStack` inside an onboarding screen. UIKit hosts that wrap
+`OnboardingFlow` in a hosting controller should dismiss that controller
+themselves; the frozen path still prevents a visible pop during dismiss.
 
 User-facing Skip and final Continue both call the same app helper, which runs app-specific completion effects and then calls `controller.complete()`. Do not add a second skip state or skip key.
 
@@ -179,6 +194,8 @@ required host pattern, App Review rationale, and anti-pattern checklist.
 - Replace app-local page index and completion state with one controller.
 - Replace app-local `NavigationStack`, path binding, interactive-pop adapter,
   and back controls with `OnboardingFlow`.
+- Replace a root `if shouldPresent` swap with `OnboardingCover` so completion
+  dismisses downward. Keep `OnboardingFlow` inside that cover.
 - Seed all shipped completion keys before controller initialization.
 - Remove all remaining writers to the old keys in the same change.
 - Keep page views and their content in the app.
@@ -201,7 +218,7 @@ required host pattern, App Review rationale, and anti-pattern checklist.
 ## Host test boundary
 
 - Test only app-owned screens/step IDs, first-run completion effects versus replay, real shipped completion-key migration, permission-service mapping, and the host's surface routing.
-- Navigation, stable-ID persistence, resume/fallback, skip/completion state, debug overrides, and replay mechanics are fixed OnboardingKit contracts and are tested in the package once.
+- Navigation, stable-ID persistence, resume/fallback, skip/completion state, frozen path after `complete()`, debug overrides, and replay mechanics are fixed OnboardingKit contracts and are tested in the package once.
 - Do not inspect `project.pbxproj`, imports, source strings, or deleted host flow types from XCTest; assembly and residual implementation checks belong to `onboarding-kit-lint`.
 - Use isolated `UserDefaults`, fake permission services, and public APIs. Do not request real system permission in unit tests. Identical helpers in two apps are a signal to move the missing seam and tests into OnboardingKit.
 
@@ -209,8 +226,8 @@ required host pattern, App Review rationale, and anti-pattern checklist.
 
 - Do not put concrete SwiftUI/UIKit screens, copy, colors, illustrations,
   custom navigation chrome, analytics schemas, or product strategy parameters
-  in the package. `OnboardingFlow` is the sole infrastructure-level UI
-  exception. ScreenStudies source
+  in the package. `OnboardingFlow` and `OnboardingCover` are the only
+  infrastructure-level UI exceptions. ScreenStudies source
   may be copied into a host app for faithful page migration, but never into
   OnboardingKit and never as an imported package/source-tree dependency.
 - Do not put any permission concern in the package, including request APIs,

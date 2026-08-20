@@ -125,6 +125,39 @@ func advancingFromLastStepCompletesAndClearsProgress() throws {
 
 @MainActor
 @Test
+func completeFreezesNavigationPathSoHostDismissDoesNotPopToRoot() throws {
+    let controller = OnboardingController(plan: try makePlan(), store: MemoryStore())
+    controller.advance()
+    controller.advance()
+    let visiblePath = controller.navigationPath
+
+    controller.complete()
+
+    #expect(controller.isCompleted)
+    #expect(!controller.shouldPresent)
+    #expect(controller.currentStep == .welcome)
+    #expect(controller.navigationPath == visiblePath)
+    #expect(visiblePath == [.permission, .ready])
+}
+
+@MainActor
+@Test
+func replayClearsFrozenNavigationPath() throws {
+    let store = MemoryStore(completion: true)
+    let controller = OnboardingController(plan: try makePlan(), store: store)
+    controller.beginReplay()
+    controller.advance()
+    controller.advance()
+    controller.complete()
+    #expect(controller.navigationPath == [.permission, .ready])
+
+    controller.beginReplay()
+    #expect(controller.currentStep == .welcome)
+    #expect(controller.navigationPath.isEmpty)
+}
+
+@MainActor
+@Test
 func oneStepPlanCompletesOnFirstAdvance() throws {
     let store = MemoryStore()
     let controller = OnboardingController(

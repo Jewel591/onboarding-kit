@@ -6,10 +6,11 @@ and render each screen themselves; the package supplies one definition of
 navigation, persisted progress, completion, replay, reset, and migration.
 
 > **Important UI boundary:** OnboardingKit provides only the unstyled
-> `OnboardingFlow` infrastructure container. It does not contain any concrete
-> onboarding screen. Every app designs and implements its own screens so the
-> experience matches that product's visual language. When designing or
-> revising those screens, prefer relevant studies from the private
+> `OnboardingFlow` navigation container and `OnboardingCover` root-gate
+> overlay. It does not contain any concrete onboarding screen. Every app
+> designs and implements its own screens so the experience matches that
+> product's visual language. When designing or revising those screens, prefer
+> relevant studies from the private
 > [ScreenStudies](https://github.com/Jewel591/screenstudies/) repository as the
 > visual source of truth. Its page implementation may be copied into the host
 > app and adapted there, but ScreenStudies itself must never be added as a
@@ -58,15 +59,23 @@ func makeOnboarding() throws -> OnboardingController<AppOnboardingStep> {
 }
 ```
 
-Render the app-owned screens inside the Kit's fixed navigation container:
+Render the app-owned screens inside the Kit's fixed navigation container, and
+present that container with `OnboardingCover` so the app root stays mounted
+underneath. Completing onboarding slides the overlay down; `complete()` also
+freezes the visible navigation path so the internal stack does not pop to the
+first page during that dismiss.
 
 ```swift
-OnboardingFlow(controller: controller) { step in
-    switch step {
-    case .welcome: WelcomeView(onContinue: controller.advance)
-    case .notifications: NotificationsView(onContinue: requestNotifications)
-    case .location: LocationView(onContinue: requestLocation)
-    case .ready: ReadyView(onComplete: finishOnboarding)
+OnboardingCover(controller: controller) {
+    MainTabView()
+} flow: {
+    OnboardingFlow(controller: controller) { step in
+        switch step {
+        case .welcome: WelcomeView(onContinue: controller.advance)
+        case .notifications: NotificationsView(onContinue: requestNotifications)
+        case .location: LocationView(onContinue: requestLocation)
+        case .ready: ReadyView(onComplete: finishOnboarding)
+        }
     }
 }
 ```
@@ -77,10 +86,10 @@ positive number of steps; adding or removing a page requires no navigation
 configuration. Do not hide or replace the system navigation bar on individual
 onboarding screens.
 
-Onboarding should be a leaf root-gate flow: conditionally show it before the
-app's main navigation, or present it as an isolated full-screen flow. An app may
-have its own outer `NavigationStack`; the two stacks do not share paths. Do not
-push onboarding's internal steps from the app stack, present onboarding as a
+Do not swap the app root with `if controller.shouldPresent { OnboardingFlow }`;
+that animates a navigation pop instead of a cover dismiss. An app may have its
+own outer `NavigationStack`; the two stacks do not share paths. Do not push
+onboarding's internal steps from the app stack, present onboarding as a
 normal destination with a second exit-back meaning, or add another
 `NavigationStack` inside an onboarding screen.
 
@@ -160,9 +169,10 @@ leave completion and saved progress untouched. Release builds ignore them.
 ## Deliberately out of scope
 
 - All concrete screen UI, including strings, illustrations, custom styling,
-  animations, and custom page transitions. Each host app owns these and should prefer
-  relevant private [ScreenStudies](https://github.com/Jewel591/screenstudies/)
-  research when choosing an onboarding design.
+  and custom in-page transitions. Cover dismiss is owned by `OnboardingCover`.
+  Each host app owns page UI and should prefer relevant private
+  [ScreenStudies](https://github.com/Jewel591/screenstudies/) research when
+  choosing an onboarding design.
 - All permission functionality: APIs, authorization truth, prompt interaction
   state, purpose strings, entitlements, Settings recovery, and permission policy
 - Authentication, subscription, paywalls, and business-data initialization
