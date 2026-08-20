@@ -6,11 +6,13 @@ all product-specific side effects.
 
 ## Product boundary
 
-- The package exports exactly one infrastructure-level SwiftUI container,
-  `OnboardingFlow`, which owns the system `NavigationStack` and value path. It
-  never contains, exports, or prescribes a concrete onboarding screen, custom
-  navigation chrome, or screen styling. Every host app implements screens that
-  match its own product style.
+- The package exports two infrastructure-level SwiftUI containers and no
+  concrete screens: `OnboardingFlow` owns the system `NavigationStack` and
+  value path; `OnboardingCover` owns the root-gate overlay so completing
+  onboarding dismisses downward instead of popping the internal stack.
+  It never contains, exports, or prescribes a concrete onboarding screen,
+  custom navigation chrome, or screen styling. Every host app implements
+  screens that match its own product style.
   For onboarding UI design, prefer relevant research in the private
   [ScreenStudies](https://github.com/Jewel591/screenstudies/) repository before
   inventing a design from scratch. The selected page is the visual source of
@@ -87,8 +89,9 @@ all product-specific side effects.
 - Swift 6 strict concurrency. Public API supports iOS 17, macOS 14, and
   visionOS 1.
 - Zero third-party dependencies. SwiftUI is used only by the unstyled
-  `OnboardingFlow` infrastructure container; the controller remains independent
-  of screen UI. Keep all mutable public state on `MainActor`.
+  `OnboardingFlow` and `OnboardingCover` infrastructure containers; the
+  controller remains independent of screen UI. Keep all mutable public state
+  on `MainActor`.
 - Persist only under the `OnboardingKit.` prefix. Host code may read legacy
   keys during one-time seeding but must not write package-owned keys.
 - Every state or storage change requires focused Swift Testing coverage with

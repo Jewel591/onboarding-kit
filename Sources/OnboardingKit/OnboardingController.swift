@@ -19,6 +19,9 @@ public final class OnboardingController<Step: OnboardingStep> {
     private let plan: OnboardingPlan<Step>
     private let store: any OnboardingStoring
     private let debugOverride: OnboardingDebugOverride?
+    /// Last visible stack, kept after `complete()` so the host can dismiss
+    /// without `NavigationStack` popping back to the first step.
+    private var dismissedNavigationPath: [Step]?
 
     public init(
         plan: OnboardingPlan<Step>,
@@ -81,9 +84,13 @@ public final class OnboardingController<Step: OnboardingStep> {
     /// how the system back button and interactive pop gesture report a pop.
     var navigationPath: [Step] {
         get {
-            Array(plan.steps.dropFirst().prefix(currentPosition - 1))
+            if let dismissedNavigationPath {
+                return dismissedNavigationPath
+            }
+            return Array(plan.steps.dropFirst().prefix(max(currentPosition - 1, 0)))
         }
         set {
+            guard dismissedNavigationPath == nil else { return }
             let availableSteps = plan.steps.dropFirst()
             guard newValue.count <= availableSteps.count,
                   Array(availableSteps.prefix(newValue.count)) == newValue,
@@ -137,17 +144,24 @@ public final class OnboardingController<Step: OnboardingStep> {
 
     /// Completes either a first-run presentation or a transient replay.
     /// User-facing Skip actions call this same method.
+    ///
+    /// The visible step and navigation path stay on the last page so the host
+    /// can dismiss the flow like a cover. `beginReplay()` and `reset()` return
+    /// to the first step; the next launch also starts at the first step.
     public func complete() {
         navigationDirection = .none
+        if dismissedNavigationPath == nil {
+            dismissedNavigationPath = Array(
+                plan.steps.dropFirst().prefix(max(currentPosition - 1, 0))
+            )
+        }
 
         if isReplaying {
             isReplaying = false
-            currentStep = plan.firstStep
             return
         }
 
         isCompleted = true
-        currentStep = plan.firstStep
         guard debugOverride == nil else {
             return
         }
@@ -160,6 +174,7 @@ public final class OnboardingController<Step: OnboardingStep> {
         guard isCompleted else {
             return
         }
+        dismissedNavigationPath = nil
         isReplaying = true
         navigationDirection = .none
         currentStep = plan.firstStep
@@ -167,6 +182,7 @@ public final class OnboardingController<Step: OnboardingStep> {
 
     /// Deliberately clears persisted completion and progress.
     public func reset() {
+        dismissedNavigationPath = nil
         store.setCompletion(false)
         store.setCurrentStepID(nil)
         isReplaying = false

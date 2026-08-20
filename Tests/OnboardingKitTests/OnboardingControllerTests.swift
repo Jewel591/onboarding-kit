@@ -118,9 +118,45 @@ func advancingFromLastStepCompletesAndClearsProgress() throws {
 
     #expect(controller.isCompleted)
     #expect(!controller.shouldPresent)
-    #expect(controller.currentStep == .welcome)
+    #expect(controller.currentStep == .ready)
     #expect(store.state.completion == true)
     #expect(store.state.currentStepID == nil)
+}
+
+@MainActor
+@Test
+func completeFreezesNavigationPathSoHostDismissDoesNotPopToRoot() throws {
+    let controller = OnboardingController(plan: try makePlan(), store: MemoryStore())
+    controller.advance()
+    controller.advance()
+    let visiblePath = controller.navigationPath
+
+    controller.complete()
+
+    #expect(controller.isCompleted)
+    #expect(!controller.shouldPresent)
+    #expect(controller.currentStep == .ready)
+    #expect(controller.navigationPath == visiblePath)
+    #expect(visiblePath == [.permission, .ready])
+    #expect(controller.currentPosition == 3)
+    #expect(controller.isLastStep)
+}
+
+@MainActor
+@Test
+func replayClearsFrozenNavigationPath() throws {
+    let store = MemoryStore(completion: true)
+    let controller = OnboardingController(plan: try makePlan(), store: store)
+    controller.beginReplay()
+    controller.advance()
+    controller.advance()
+    controller.complete()
+    #expect(controller.navigationPath == [.permission, .ready])
+    #expect(controller.currentStep == .ready)
+
+    controller.beginReplay()
+    #expect(controller.currentStep == .welcome)
+    #expect(controller.navigationPath.isEmpty)
 }
 
 @MainActor
@@ -204,6 +240,24 @@ func resetIsTheExplicitPersistentClear() throws {
     #expect(controller.currentStep == .welcome)
     #expect(store.state.completion == false)
     #expect(store.state.currentStepID == nil)
+}
+
+@MainActor
+@Test
+func resetAfterCompleteClearsFrozenNavigationPath() throws {
+    let store = MemoryStore()
+    let controller = OnboardingController(plan: try makePlan(), store: store)
+    controller.advance()
+    controller.advance()
+    controller.complete()
+    #expect(controller.navigationPath == [.permission, .ready])
+    #expect(controller.currentStep == .ready)
+
+    controller.reset()
+    #expect(!controller.isCompleted)
+    #expect(controller.shouldPresent)
+    #expect(controller.currentStep == .welcome)
+    #expect(controller.navigationPath.isEmpty)
 }
 
 @MainActor
