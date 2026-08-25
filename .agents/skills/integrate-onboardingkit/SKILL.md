@@ -148,7 +148,12 @@ User-facing Skip and final Continue both call the same app helper, which runs ap
 
 ## Preserve host completion effects
 
-OnboardingKit only records onboarding state. The app remains responsible for effects such as marking What's New as seen, clearing launch surfaces, or publishing `onboardingActive = false`.
+OnboardingKit only records onboarding state. The app remains responsible for effects such as clearing launch surfaces or publishing `onboardingActive = false`.
+
+Do not mark What's New as seen when onboarding completes. WhatsNewKit treats a
+fresh install and an upgrade the same way: after onboarding releases the root
+gate, rerun app-surface arbitration and let the current release's content show
+once. Only an actual dismissal of that surface may advance its seen watermark.
 
 Route first-run final Continue and user Skip through one host helper so these effects cannot diverge. A replay may call `controller.complete()` directly, or the helper may branch on `isReplaying`, when first-run-only effects must not repeat. A debug force-completed launch argument changes presentation only; it must not impersonate a real completion event or silently run one-time product effects.
 
@@ -207,6 +212,7 @@ required host pattern, App Review rationale, and anti-pattern checklist.
   by default; document the rare product exception that has no notification use
   case.
 - Preserve one common host completion helper for first-run final Continue and Skip; keep replay-only closure from repeating first-run effects.
+- Remove any onboarding-completion call that marks What's New as seen; completion should release the root gate and let surface arbitration reevaluate it.
 - Verify a completed legacy install stays completed.
 - Test the app's real step plan and stable IDs; resume and removed-ID fallback algorithms themselves belong to OnboardingKit package tests.
 - If the host requests protected access, verify denial, restriction, request
