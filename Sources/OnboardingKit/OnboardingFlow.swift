@@ -69,6 +69,10 @@ public struct OnboardingFlow<Step: OnboardingStep, Content: View, Footer: View>:
 
 extension OnboardingFlow where Footer == EmptyView {
     /// A flow whose steps each carry their own actions.
+    ///
+    /// Inferred `OnboardingFlow(controller:content:)` call sites keep compiling
+    /// as `Footer == EmptyView`. An explicit `OnboardingFlow<Step, Content>`
+    /// type spelling needs the third generic parameter.
     public init(
         controller: OnboardingController<Step>,
         @ViewBuilder content: @escaping (Step) -> Content

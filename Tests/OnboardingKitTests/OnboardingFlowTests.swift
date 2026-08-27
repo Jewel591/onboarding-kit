@@ -26,9 +26,11 @@ private func makeController() throws -> OnboardingController<FlowStep> {
     )
 }
 
-/// The footer slot is additive: a flow whose steps carry their own actions
-/// keeps compiling against the two-argument form, and resolves to a footer-less
-/// specialization rather than picking up an inset it never asked for.
+/// The footer slot is additive for inferred call sites: a flow whose steps
+/// carry their own actions keeps compiling against the two-argument form, and
+/// resolves to `Footer == EmptyView` rather than picking up an inset it never
+/// asked for. Explicit `OnboardingFlow<Step, Content>` spellings need the
+/// third generic parameter.
 @MainActor
 @Test
 func flowWithoutFooterStaysFooterless() throws {
@@ -39,9 +41,9 @@ func flowWithoutFooterStaysFooterless() throws {
     #expect(type(of: flow) == OnboardingFlow<FlowStep, Text, EmptyView>.self)
 }
 
-/// The opt-in form carries the host's footer type through, which is what puts
-/// the inset inside the stack where it can both plant the footer and shrink
-/// each pushed page's bounds.
+/// The opt-in form carries the host's footer type through. The footer is a
+/// sibling of the stack: mounted once, and its height comes out of the stack's
+/// frame so every pushed page lays out above it.
 @MainActor
 @Test
 func flowWithFooterCarriesFooterType() throws {

@@ -156,7 +156,9 @@ both fail quietly:
   closure is evaluated per destination, so the footer becomes one mounting
   point per page and rides the push transition instead of staying planted.
 
-Only the `footer:` slot above is inside the stack, which is what gets both.
+Only the `footer:` slot sits beside the stack, shrinking the stack's frame so
+every page lays out above it. It is outside that `NavigationStack`, so it does
+not inherit the stack's navigation environment.
 
 Reserving a fixed slot is a trade: it keeps the button baseline from moving
 between steps, and it permanently removes that height from every page's content

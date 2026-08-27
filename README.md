@@ -101,10 +101,18 @@ OnboardingFlow(controller: controller) { step in
 Do not attach this inset yourself. On `OnboardingFlow` it never reaches a
 pushed page's bounds, so trailing page content lays out under the footer;
 inside the `content` closure the bounds are right but the footer becomes one
-mounting point per page and rides the push transition. Only the slot above,
-which sits inside the stack, gets both. Reserving it also removes that height
-from every page's content area, including steps whose footer draws nothing —
-size it for the tallest step and check the shortest page still breathes.
+mounting point per page and rides the push transition. Only the `footer:`
+slot sits beside the stack, shrinking the stack's frame so every page lays
+out above it. The footer is outside that `NavigationStack`, so it does not
+inherit the stack's navigation environment — do not put `NavigationLink` or
+other stack-owned chrome in it.
+
+The two-argument initializer stays source-compatible for inferred call sites
+(`OnboardingFlow(controller:content:)` resolves to `Footer == EmptyView`).
+An explicit `OnboardingFlow<Step, Content>` type spelling needs the third
+parameter. Reserving the slot also removes that height from every page's
+content area, including steps whose footer draws nothing — size it for the
+tallest step and check the shortest page still breathes.
 
 Do not swap the app root with `if controller.shouldPresent { OnboardingFlow }`;
 that animates a navigation pop instead of a cover dismiss. An app may have its
