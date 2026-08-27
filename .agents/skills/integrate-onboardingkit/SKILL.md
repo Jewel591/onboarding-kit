@@ -121,6 +121,50 @@ OnboardingCover(controller: controller) {
 }
 ```
 
+### One CTA for the whole flow
+
+When every step ends in the same control, pass one `footer` instead of giving
+each page its own button. The footer is built once, reads the controller for
+what to show, and stays planted while step content pushes past it:
+
+```swift
+OnboardingFlow(controller: controller) { step in
+    switch step {
+    case .welcome: WelcomeView()
+    case .capture: CaptureView()
+    }
+} footer: {
+    MyFooter(
+        step: controller.currentStep,
+        isEnabled: isCurrentStepSatisfied,
+        action: primaryAction
+    )
+}
+```
+
+Keep the footer's state on the host view that owns the flow, not inside a page:
+the footer renders `controller.currentStep`, so a page cannot drive it.
+
+⛔ **Do not attach this inset yourself.** Neither host-side position works, and
+both fail quietly:
+
+- `.safeAreaInset` on `OnboardingFlow` — the inset never reaches a pushed
+  page's bounds, so trailing page content lays out *underneath* the footer.
+  `.safeAreaPadding(.bottom)` on the page does not rescue it; it only picks up
+  the system home-indicator inset, so content moves ~16pt and stays covered.
+- `.safeAreaInset` inside the `content` closure — bounds are correct, but the
+  closure is evaluated per destination, so the footer becomes one mounting
+  point per page and rides the push transition instead of staying planted.
+
+Only the `footer:` slot above is inside the stack, which is what gets both.
+
+Reserving a fixed slot is a trade: it keeps the button baseline from moving
+between steps, and it permanently removes that height from every page's content
+area — including steps whose footer draws nothing. Size the footer for the
+tallest step, then check the shortest page still breathes. Steps with no
+flow-level CTA at all (auto-advancing or pure-loading pages) are the case for
+per-page actions instead of this slot.
+
 The first configured step is the stack root. Every later step receives the
 system back button and interactive-pop behavior automatically. Read
 `currentPosition`, `stepCount`, and `navigationDirection` for app-owned progress
