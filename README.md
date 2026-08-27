@@ -86,6 +86,34 @@ positive number of steps; adding or removing a page requires no navigation
 configuration. Do not hide or replace the system navigation bar on individual
 onboarding screens.
 
+When every step ends in the same call to action, pass one `footer` instead of
+giving each page its own button. It is built once, reads the controller for
+what to show, and stays planted while step content pushes past it:
+
+```swift
+OnboardingFlow(controller: controller) { step in
+    page(for: step)
+} footer: {
+    MyFooter(step: controller.currentStep, action: primaryAction)
+}
+```
+
+Do not attach this inset yourself. On `OnboardingFlow` it never reaches a
+pushed page's bounds, so trailing page content lays out under the footer;
+inside the `content` closure the bounds are right but the footer becomes one
+mounting point per page and rides the push transition. Only the `footer:`
+slot sits beside the stack, shrinking the stack's frame so every page lays
+out above it. The footer is outside that `NavigationStack`, so it does not
+inherit the stack's navigation environment — do not put `NavigationLink` or
+other stack-owned chrome in it.
+
+The two-argument initializer stays source-compatible for inferred call sites
+(`OnboardingFlow(controller:content:)` resolves to `Footer == EmptyView`).
+An explicit `OnboardingFlow<Step, Content>` type spelling needs the third
+parameter. Reserving the slot also removes that height from every page's
+content area, including steps whose footer draws nothing — size it for the
+tallest step and check the shortest page still breathes.
+
 Do not swap the app root with `if controller.shouldPresent { OnboardingFlow }`;
 that animates a navigation pop instead of a cover dismiss. An app may have its
 own outer `NavigationStack`; the two stacks do not share paths. Do not push
