@@ -20,14 +20,14 @@ import SwiftUI
 /// }
 /// ```
 ///
-/// Attaching the same inset from the host is not equivalent, which is why this
-/// slot exists. Outside the stack — on `OnboardingFlow` itself — the inset
-/// never reaches a pushed page's bounds, so trailing page content lays out
-/// underneath the footer. Inside the host's `content` closure the bounds are
-/// correct, but the closure is evaluated per destination, so the footer becomes
-/// one mounting point per page and rides the push transition. The slot below is
-/// the only position that gets both: a single planted footer whose height is
-/// subtracted from every step's layout.
+/// Attaching a `safeAreaInset` from the host is not equivalent, which is why
+/// this slot exists. On `OnboardingFlow` itself the inset never reaches a
+/// pushed page's bounds, so trailing page content lays out underneath the
+/// footer. Inside the host's `content` closure the bounds are correct, but the
+/// closure is evaluated per destination, so the footer becomes one mounting
+/// point per page and rides the push transition. The slot below sits beside
+/// the stack instead: mounted once, and its height comes out of the stack's
+/// frame, so every step lays out above it.
 ///
 /// Reserving a fixed slot is a trade: it keeps the button baseline from moving
 /// between steps, and it permanently removes that height from every page's
@@ -50,15 +50,19 @@ public struct OnboardingFlow<Step: OnboardingStep, Content: View, Footer: View>:
     }
 
     public var body: some View {
-        NavigationStack(path: $controller.navigationPath) {
-            content(controller.firstStep)
-                .navigationDestination(for: Step.self, destination: content)
-                // Inside the stack, so the inset both shrinks each pushed
-                // page's bounds and keeps the footer out of the push
-                // transition. Neither holds when a host attaches this itself.
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    footer()
-                }
+        // The footer is a sibling of the stack, not a modifier on a view
+        // inside it: an inset attached within goes wherever its owner goes, so
+        // on the root it disappears at the first push, and on a destination it
+        // becomes one copy per page that rides the transition. As a sibling it
+        // mounts once and takes its height out of the stack's own frame, so
+        // every step lays out above it.
+        VStack(spacing: 0) {
+            NavigationStack(path: $controller.navigationPath) {
+                content(controller.firstStep)
+                    .navigationDestination(for: Step.self, destination: content)
+            }
+
+            footer()
         }
     }
 }
