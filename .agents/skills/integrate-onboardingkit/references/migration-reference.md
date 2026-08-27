@@ -57,13 +57,21 @@ func finishOnboarding() {
         onboardingController.complete()
         return
     }
-    whatsNewCoordinator.markCurrentVersionSeen()
-    onboardingController.complete()
     onboardingActive = false
+    onboardingController.complete()
 }
 ```
 
-Both the final page and a visible Skip button call this helper. Adapt the effects to the target app. Debug overrides are presentation fixtures and do not call this helper automatically.
+Both the final page and a visible Skip button call this helper. Adapt the
+host-owned completion effects to the target app, then complete the controller.
+Debug overrides are presentation fixtures and do not call this helper
+automatically.
+
+Do not import or call WhatsNewKit from this helper. Onboarding and What's New
+own independent state: completing onboarding only releases the root gate. Once
+that gate is released, let the app's surface coordinator reevaluate eligible
+surfaces normally. WhatsNewKit advances its seen watermark only after the user
+actually dismisses What's New.
 
 ## Permission pages
 
