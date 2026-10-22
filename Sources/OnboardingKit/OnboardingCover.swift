@@ -34,9 +34,12 @@ public struct OnboardingCover<Step: OnboardingStep, Root: View, Flow: View>: Vie
                 .accessibilityHidden(isolateRoot)
 
             if isCoverVisible {
+                // No contentShape here: `isolateRoot` already keeps touches off
+                // the root, and a shape clipped to this safe-area frame would
+                // swallow taps on system bars drawn in the inset, such as the
+                // vertical toolbar on iPhone Duo.
                 flow
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
                     .transition(.asymmetric(
                         insertion: .identity,
                         removal: .move(edge: .bottom)
